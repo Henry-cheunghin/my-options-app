@@ -1,0 +1,15 @@
+{
+  "report_date": "2026-11-06",
+  "source": "HKEX Official Clearing Data",
+  "expiry": "NOV-27 (20天)",
+  "data": [
+    { "strike": 23600, "call_oi": 266, "put_oi": 660 },
+    { "strike": 23800, "call_oi": 589, "put_oi": 513 },
+    { "strike": 24000, "call_oi": 1107, "put_oi": 782 },
+    { "strike": 24200, "call_oi": 477, "put_oi": 396 },
+    { "strike": 24400, "call_oi": 801, "put_oi": 480 },
+    { "strike": 24600, "call_oi": 774, "put_oi": 285 },
+    { "strike": 24800, "call_oi": 1086, "put_oi": 263 },
+    { "strike": 25000, "call_oi": 757, "put_oi": 166 }
+  ]
+}
