@@ -17,13 +17,13 @@ market = st.radio(
 )
 
 if market == "🇺🇸 美股期權鏈 (CBOE/OCC 官方源)":
-    with st.form(key="search_form"):
+    with st.form(key="us_form"):
         c_in1, c_in2 = st.columns([3, 1])
         with c_in1:
             symbol = st.text_input("輸入美股代號：", value="SPY").strip().upper()
         with c_in2:
             st.write("")
-            submit_btn = st.form_submit_button("🔍 查詢股票")
+            submit_btn = st.form_submit_button("🔍 查詢美股")
 
     if symbol:
         with st.spinner(f"正在向官方源加載 [{symbol}] 數據..."):
@@ -110,6 +110,15 @@ if market == "🇺🇸 美股期權鏈 (CBOE/OCC 官方源)":
 else:
     st.subheader("🇭🇰 港股市場官方大戶未平倉攻防終端 (HKEX)")
     
+    # 港股自訂輸入號碼表單（防手機彈鍵盤干擾）
+    with st.form(key="hk_form"):
+        c_hk1, c_hk2 = st.columns([3, 1])
+        with c_hk1:
+            hk_input = st.text_input("輸入港股代號或指數（例如 HSI, 0700, 9988, 3690, 0388, 1211）：", value="HSI").strip().upper()
+        with c_hk2:
+            st.write("")
+            hk_submit = st.form_submit_button("🔍 查詢港股")
+
     if os.path.exists("hsi_latest.json"):
         try:
             with open("hsi_latest.json", "r", encoding="utf-8") as f:
@@ -118,87 +127,89 @@ else:
             report_date = hkex_payload.get("report_date", "未記錄")
             stocks_dict = hkex_payload.get("stocks", {})
             
-            # 若為舊版單合約結構，自動兼容
-            if not stocks_dict and "contracts" in hkex_payload:
-                stocks_dict = {"恒生指數 (HSI)": {"contracts": hkex_payload["contracts"]}}
-            elif not stocks_dict and "data" in hkex_payload:
-                stocks_dict = {"恒生指數 (HSI)": {"contracts": {"🇭🇰 即月月期權": {"expiry_date": "2026-11-27", "data": hkex_payload["data"]}}}}
+            # 代號模糊智能匹配（例如輸入 700 或 0700 都能配對到「騰訊控股 (0700.HK)」）
+            matched_key = None
+            clean_input = hk_input.replace(".HK", "").zfill(4) if hk_input.isdigit() else hk_input
             
-            # 港股標的單選按鈕（手機點擊即切換，不彈出輸入法）
-            stock_list = list(stocks_dict.keys())
-            selected_stock = st.radio("🎯 選擇跟蹤港股標的：", stock_list, horizontal=True)
-            
-            contracts_dict = stocks_dict[selected_stock].get("contracts", {})
-            contract_options = list(contracts_dict.keys())
-            
-            selected_contract_label = st.radio(
-                "📅 選擇合約到期日（純點擊切換）：",
-                contract_options,
-                horizontal=True
-            )
-            
-            contract_info = contracts_dict[selected_contract_label]
-            settle_date = contract_info.get("expiry_date", "待定")
-            raw_data = contract_info.get("data", [])
-            
-            if raw_data:
-                df_hk = pd.DataFrame(raw_data)
-                
-                # 計算大戶 P&L 最佳結算位 (Max Pain)
-                strikes = df_hk['strike'].tolist()
-                pnl_records = []
-                for s in strikes:
-                    call_payout = sum([max(0, s - r['strike']) * r['call_oi'] for _, r in df_hk.iterrows()])
-                    put_payout = sum([max(0, r['strike'] - s) * r['put_oi'] for _, r in df_hk.iterrows()])
-                    pnl_records.append({"strike": s, "loss": call_payout + put_payout})
-                
-                pnl_df = pd.DataFrame(pnl_records).sort_values(by="loss", ascending=True).reset_index(drop=True)
-                top1_settle = pnl_df.iloc[0]['strike']
-                top2_settle = pnl_df.iloc[1]['strike']
-                
-                put_max = df_hk.loc[df_hk['put_oi'].idxmax()]
-                high_calls = df_hk[df_hk['strike'] > put_max['strike']]
-                call_max = high_calls.loc[high_calls['call_oi'].idxmax()] if not high_calls.empty else df_hk.loc[df_hk['call_oi'].idxmax()]
-                
-                # 提示數據日與到期日
-                st.info(f"📌 **數據發布基準日**：{report_date} ｜ 🎯 **合約到期結算日**：**{settle_date}**")
-                
-                # 判斷單位（指數為「點」，個股為「元」）
-                unit_str = "點" if "指數" in selected_stock else "元"
-                
-                c1, c2 = st.columns(2)
-                c1.metric(f"🥇 第一大機會結算位 ({settle_date})", f"{top1_settle:,.1f} {unit_str}", "大戶 P&L 最佳點位")
-                c2.metric(f"🥈 第二大機會結算位 ({settle_date})", f"{top2_settle:,.1f} {unit_str}", "次級防守點位")
-                
-                c3, c4 = st.columns(2)
-                c3.metric("🟢 大戶實質 Call 天花板", f"{call_max['strike']:,.1f} {unit_str}", f"{int(call_max['call_oi']):,} 張")
-                c4.metric("🔴 大戶實質 Put 鋼底", f"{put_max['strike']:,.1f} {unit_str}", f"{int(put_max['put_oi']):,} 張")
-                
-                fig_hk = go.Figure()
-                fig_hk.add_trace(go.Bar(
-                    y=df_hk['strike'], x=df_hk['call_oi'],
-                    name='Call OI (大戶阻力)', orientation='h', marker=dict(color='#00E676'),
-                    text=[f"{int(x)}張" for x in df_hk['call_oi']], textposition='outside'
-                ))
-                fig_hk.add_trace(go.Bar(
-                    y=df_hk['strike'], x=-df_hk['put_oi'],
-                    name='Put OI (大戶支撐)', orientation='h', marker=dict(color='#FF5252'),
-                    text=[f"{int(x)}張" for x in df_hk['put_oi']], textposition='outside'
-                ))
-                fig_hk.add_hline(
-                    y=top1_settle, line_dash="dot", line_color="#00FFFF", line_width=2,
-                    annotation_text=f"預測結算: {top1_settle:,.1f}", annotation_position="bottom right"
-                )
-                fig_hk.update_layout(
-                    title=f"<b>[{selected_stock}] 大戶攻防與結算預測圖 (結算日: {settle_date})</b>",
-                    barmode='relative', template='plotly_dark',
-                    xaxis=dict(title='Put 倉 (左) ⟵ ｜ ⟶ Call 倉 (右)', fixedrange=True),
-                    yaxis=dict(title=f'行使價 ({unit_str})', fixedrange=True),
-                    height=750
-                )
-                st.plotly_chart(fig_hk, use_container_width=True, config={'displayModeBar': False})
+            for k in stocks_dict.keys():
+                if clean_input in k or hk_input in k:
+                    matched_key = k
+                    break
+                    
+            if not matched_key:
+                st.error(f"❌ 官方結算庫中暫未收錄代號 [{hk_input}]。")
+                st.info(f"💡 目前日報庫已收錄標的：{', '.join(stocks_dict.keys())}。如需新增其他股票，只需加入 json 即可。")
             else:
-                st.warning("⚠️ 該合約無行使價數據。")
+                stock_data = stocks_dict[matched_key]
+                contracts_dict = stock_data.get("contracts", {})
+                contract_options = list(contracts_dict.keys())
+                
+                selected_contract_label = st.radio(
+                    "📅 選擇合約到期日（純點擊切換）：",
+                    contract_options,
+                    horizontal=True
+                )
+                
+                contract_info = contracts_dict[selected_contract_label]
+                settle_date = contract_info.get("expiry_date", "待定")
+                raw_data = contract_info.get("data", [])
+                
+                if raw_data:
+                    df_hk = pd.DataFrame(raw_data)
+                    
+                    # 計算大戶 P&L 最佳結算位 (Max Pain)
+                    strikes = df_hk['strike'].tolist()
+                    pnl_records = []
+                    for s in strikes:
+                        call_payout = sum([max(0, s - r['strike']) * r['call_oi'] for _, r in df_hk.iterrows()])
+                        put_payout = sum([max(0, r['strike'] - s) * r['put_oi'] for _, r in df_hk.iterrows()])
+                        pnl_records.append({"strike": s, "loss": call_payout + put_payout})
+                    
+                    pnl_df = pd.DataFrame(pnl_records).sort_values(by="loss", ascending=True).reset_index(drop=True)
+                    top1_settle = pnl_df.iloc[0]['strike']
+                    top2_settle = pnl_df.iloc[1]['strike']
+                    
+                    put_max = df_hk.loc[df_hk['put_oi'].idxmax()]
+                    high_calls = df_hk[df_hk['strike'] > put_max['strike']]
+                    call_max = high_calls.loc[high_calls['call_oi'].idxmax()] if not high_calls.empty else df_hk.loc[df_hk['call_oi'].idxmax()]
+                    
+                    st.info(f"📌 **標的**：{matched_key} ｜ **發布日**：{report_date} ｜ 🎯 **到期結算日**：**{settle_date}**")
+                    
+                    unit_str = "點" if "HSI" in matched_key or "恒生" in matched_key else "元"
+                    
+                    c1, c2 = st.columns(2)
+                    c1.metric(f"🥇 第一大機會結算位 ({settle_date})", f"{top1_settle:,.1f} {unit_str}", "大戶 P&L 最佳點位")
+                    c2.metric(f"🥈 第二大機會結算位 ({settle_date})", f"{top2_settle:,.1f} {unit_str}", "次級防守點位")
+                    
+                    c3, c4 = st.columns(2)
+                    c3.metric("🟢 大戶實質 Call 天花板", f"{call_max['strike']:,.1f} {unit_str}", f"{int(call_max['call_oi']):,} 張")
+                    c4.metric("🔴 大戶實質 Put 鋼底", f"{put_max['strike']:,.1f} {unit_str}", f"{int(put_max['put_oi']):,} 張")
+                    
+                    fig_hk = go.Figure()
+                    fig_hk.add_trace(go.Bar(
+                        y=df_hk['strike'], x=df_hk['call_oi'],
+                        name='Call OI (大戶阻力)', orientation='h', marker=dict(color='#00E676'),
+                        text=[f"{int(x)}張" for x in df_hk['call_oi']], textposition='outside'
+                    ))
+                    fig_hk.add_trace(go.Bar(
+                        y=df_hk['strike'], x=-df_hk['put_oi'],
+                        name='Put OI (大戶支撐)', orientation='h', marker=dict(color='#FF5252'),
+                        text=[f"{int(x)}張" for x in df_hk['put_oi']], textposition='outside'
+                    ))
+                    fig_hk.add_hline(
+                        y=top1_settle, line_dash="dot", line_color="#00FFFF", line_width=2,
+                        annotation_text=f"預測結算: {top1_settle:,.1f}", annotation_position="bottom right"
+                    )
+                    fig_hk.update_layout(
+                        title=f"<b>[{matched_key}] 大戶攻防與結算預測圖 (結算日: {settle_date})</b>",
+                        barmode='relative', template='plotly_dark',
+                        xaxis=dict(title='Put 倉 (左) ⟵ ｜ ⟶ Call 倉 (右)', fixedrange=True),
+                        yaxis=dict(title=f'行使價 ({unit_str})', fixedrange=True),
+                        height=750
+                    )
+                    st.plotly_chart(fig_hk, use_container_width=True, config={'displayModeBar': False})
+                else:
+                    st.warning("⚠️ 該合約無行使價數據。")
         except Exception as e:
             st.error(f"解析官方數據出錯: {e}")
     else:
