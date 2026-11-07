@@ -1,6 +1,30 @@
 {
   "report_date": "2026-11-06",
   "contracts": {
+    "🇭🇰 即週週期權 (結算日: 2026-11-13W)": {
+      "expiry_date": "2026-11-13",
+      "data": [
+        { "strike": 23800, "call_oi": 320, "put_oi": 680 },
+        { "strike": 24000, "call_oi": 580, "put_oi": 950 },
+        { "strike": 24200, "call_oi": 720, "put_oi": 620 },
+        { "strike": 24400, "call_oi": 910, "put_oi": 450 },
+        { "strike": 24600, "call_oi": 1250, "put_oi": 310 },
+        { "strike": 24800, "call_oi": 1420, "put_oi": 180 },
+        { "strike": 25000, "call_oi": 890, "put_oi": 90 }
+      ]
+    },
+    "🇭🇰 下週週期權 (結算日: 2026-11-20W)": {
+      "expiry_date": "2026-11-20",
+      "data": [
+        { "strike": 23800, "call_oi": 180, "put_oi": 340 },
+        { "strike": 24000, "call_oi": 420, "put_oi": 510 },
+        { "strike": 24200, "call_oi": 310, "put_oi": 280 },
+        { "strike": 24400, "call_oi": 560, "put_oi": 390 },
+        { "strike": 24600, "call_oi": 680, "put_oi": 210 },
+        { "strike": 24800, "call_oi": 750, "put_oi": 150 },
+        { "strike": 25000, "call_oi": 490, "put_oi": 80 }
+      ]
+    },
     "🇭🇰 即月月期權 (結算日: 2026-11-27)": {
       "expiry_date": "2026-11-27",
       "data": [
@@ -12,18 +36,6 @@
         { "strike": 24600, "call_oi": 774, "put_oi": 285 },
         { "strike": 24800, "call_oi": 1086, "put_oi": 263 },
         { "strike": 25000, "call_oi": 757, "put_oi": 166 }
-      ]
-    },
-    "🇭🇰 即期週期權 (結算日: 2026-11-20W)": {
-      "expiry_date": "2026-11-20",
-      "data": [
-        { "strike": 23800, "call_oi": 180, "put_oi": 340 },
-        { "strike": 24000, "call_oi": 420, "put_oi": 510 },
-        { "strike": 24200, "call_oi": 310, "put_oi": 280 },
-        { "strike": 24400, "call_oi": 560, "put_oi": 390 },
-        { "strike": 24600, "call_oi": 680, "put_oi": 210 },
-        { "strike": 24800, "call_oi": 750, "put_oi": 150 },
-        { "strike": 25000, "call_oi": 490, "put_oi": 80 }
       ]
     }
   }
