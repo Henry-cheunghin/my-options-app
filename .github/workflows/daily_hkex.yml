@@ -1,35 +1,39 @@
-name: 每日抓取港交所官方結算日報
+name: 港交所官方日報每晚自動爬取
 
 on:
   schedule:
-    # 每天香港時間 23:45 執行 (UTC 時間 15:45)
+    # 逢星期一至五，香港時間 23:45 (UTC 15:45) 自動執行
     - cron: '45 15 * * 1-5'
-  workflow_dispatch: # 支援手動一鍵點擊執行測試
+  workflow_dispatch: # 支援手動隨時點擊測試
 
 jobs:
-  scrape-hkex:
+  scrape-and-update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 賦予自動寫入倉庫權限
     steps:
       - name: 簽出代碼
         uses: actions/checkout@v3
 
-      - name: 設置 Python 環境
-        uses: setup-python@v4
+      - name: 設定 Python 環境
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: 安裝依賴
+      - name: 安裝 Playwright 及瀏覽器
         run: |
-          pip install requests pytz
+          pip install playwright pytz
+          playwright install chromium
+          playwright install-deps
 
-      - name: 執行港交所官方抓取腳本
+      - name: 執行官方日報抓取腳本
         run: |
           python fetch_hkex.py
 
-      - name: 自動將最新官方數據 Commit 存入倉庫
+      - name: 自動提交最新數據至 GitHub
         run: |
-          git config --global user.name 'HKEX-Data-Bot'
-          git config --global user.email 'bot@users.noreply.github.com'
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add hsi_latest.json
-          git commit -m "更新最新港交所官方未平倉結算數據 [skip ci]" || echo "今日數據已是最新，無需變更"
+          git commit -m "自動更新港交所官方未平倉日報數據 [skip ci]" || echo "無數據變動"
           git push
