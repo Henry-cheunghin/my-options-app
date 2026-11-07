@@ -29,7 +29,6 @@ if market == "🇺🇸 美股期權鏈 (CBOE/OCC 官方源)":
         with st.spinner(f"正在向官方源加載 [{symbol}] 數據..."):
             try:
                 ticker = yf.Ticker(symbol)
-                
                 current_price = None
                 try:
                     fast_info = ticker.fast_info
@@ -105,17 +104,11 @@ if market == "🇺🇸 美股期權鏈 (CBOE/OCC 官方源)":
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                     )
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
-                    
-                    st.write("---")
-                    st.subheader("📋 行使價官方未平倉數據明細")
-                    show_df = df.sort_values(by='strike', ascending=False)[['strike', 'Call_OI', 'Put_OI']].copy()
-                    show_df.columns = ['行使價 (Strike)', 'Call 未平倉 (張)', 'Put 未平倉 (張)']
-                    st.dataframe(show_df, use_container_width=True, hide_index=True)
             except Exception as e:
                 st.error(f"獲取數據時出錯: {e}")
 
 else:
-    st.subheader("🇭🇰 恒生指數 (HSI 即月合約) 港交所官方結算盤面")
+    st.subheader("🇭🇰 恒生指數 (HSI) 港交所官方結算盤面")
     
     if os.path.exists("hsi_latest.json"):
         try:
@@ -123,13 +116,28 @@ else:
                 hkex_payload = json.load(f)
                 
             report_date = hkex_payload.get("report_date", "未記錄")
-            expiry = hkex_payload.get("expiry", "即月")
-            raw_data = hkex_payload.get("data", [])
+            contracts_dict = hkex_payload.get("contracts", {})
+            
+            # 若為舊版單合約結構，自動兼容
+            if not contracts_dict and "data" in hkex_payload:
+                contracts_dict = {"🇭🇰 即月月期權 (結算日: 2026-11-27)": {"expiry_date": "2026-11-27", "data": hkex_payload["data"]}}
+            
+            # 合約類型選擇按鈕（月期權 vs 週期權）
+            contract_options = list(contracts_dict.keys())
+            selected_contract_label = st.radio(
+                "📅 選擇期權合約類別（點擊即切換）：",
+                contract_options,
+                horizontal=True
+            )
+            
+            contract_info = contracts_dict[selected_contract_label]
+            settle_date = contract_info.get("expiry_date", "待定")
+            raw_data = contract_info.get("data", [])
             
             if raw_data:
                 df_hk = pd.DataFrame(raw_data)
                 
-                # 大戶 P&L 結算點推算
+                # 計算大戶 P&L 最佳結算位 (Max Pain)
                 strikes = df_hk['strike'].tolist()
                 pnl_records = []
                 for s in strikes:
@@ -145,11 +153,12 @@ else:
                 high_calls = df_hk[df_hk['strike'] > put_max['strike']]
                 call_max = high_calls.loc[high_calls['call_oi'].idxmax()] if not high_calls.empty else df_hk.loc[df_hk['call_oi'].idxmax()]
                 
-                st.success(f"✅ 港交所官方結算數據 ({expiry}) ｜ 結算日期: {report_date}")
+                # 清晰展示兩個日期：數據基準日 vs 到期結算日
+                st.info(f"📌 **數據發布日**：{report_date} ｜ 🎯 **合約到期結算日**：**{settle_date}**")
                 
                 c1, c2 = st.columns(2)
-                c1.metric("🥇 第一大機會結算位 (Max Pain)", f"{int(top1_settle):,} 點", "大戶獲利最大化")
-                c2.metric("🥈 第二大機會結算位", f"{int(top2_settle):,} 點", "次級防守點")
+                c1.metric(f"🥇 第一大機會結算位 ({settle_date})", f"{int(top1_settle):,} 點", "大戶 P&L 最佳點位")
+                c2.metric(f"🥈 第二大機會結算位 ({settle_date})", f"{int(top2_settle):,} 點", "次級防守點位")
                 
                 c3, c4 = st.columns(2)
                 c3.metric("🟢 大戶實質 Call 天花板", f"{int(call_max['strike']):,} 點", f"{int(call_max['call_oi']):,} 張")
@@ -168,10 +177,10 @@ else:
                 ))
                 fig_hk.add_hline(
                     y=top1_settle, line_dash="dot", line_color="#00FFFF", line_width=2,
-                    annotation_text=f"第一推算結算點: {int(top1_settle):,}", annotation_position="bottom right"
+                    annotation_text=f"預測結算點: {int(top1_settle):,}", annotation_position="bottom right"
                 )
                 fig_hk.update_layout(
-                    title=f"<b>恒指即月期權大戶攻防與結算預測圖 ({expiry})</b>",
+                    title=f"<b>恒指大戶攻防與結算預測圖 (結算日: {settle_date})</b>",
                     barmode='relative', template='plotly_dark',
                     xaxis=dict(title='Put 倉 (左) ⟵ ｜ ⟶ Call 倉 (右)', fixedrange=True),
                     yaxis=dict(title='恒指行使價 (點位)', fixedrange=True),
@@ -179,8 +188,8 @@ else:
                 )
                 st.plotly_chart(fig_hk, use_container_width=True, config={'displayModeBar': False})
             else:
-                st.warning("⚠️ 檔案中暫無有效行使價數據。")
+                st.warning("⚠️ 該合約無行使價數據。")
         except Exception as e:
-            st.error(f"解析官方數據時出錯: {e}")
+            st.error(f"解析官方數據出錯: {e}")
     else:
-        st.warning("⚠️ 港交所當日結算檔案尚未生成。")
+        st.warning("⚠️ 港交所官方結算檔案尚未生成。")
