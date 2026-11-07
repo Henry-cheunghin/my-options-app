@@ -1,0 +1,35 @@
+name: 每日抓取港交所官方結算日報
+
+on:
+  schedule:
+    # 每天香港時間 23:45 執行 (UTC 時間 15:45)
+    - cron: '45 15 * * 1-5'
+  workflow_dispatch: # 支援手動一鍵點擊執行測試
+
+jobs:
+  scrape-hkex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 簽出代碼
+        uses: actions/checkout@v3
+
+      - name: 設置 Python 環境
+        uses: setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 安裝依賴
+        run: |
+          pip install requests pytz
+
+      - name: 執行港交所官方抓取腳本
+        run: |
+          python fetch_hkex.py
+
+      - name: 自動將最新官方數據 Commit 存入倉庫
+        run: |
+          git config --global user.name 'HKEX-Data-Bot'
+          git config --global user.email 'bot@users.noreply.github.com'
+          git add hsi_latest.json
+          git commit -m "更新最新港交所官方未平倉結算數據 [skip ci]" || echo "今日數據已是最新，無需變更"
+          git push
