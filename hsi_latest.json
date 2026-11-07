@@ -1,42 +1,77 @@
 {
   "report_date": "2026-11-06",
-  "contracts": {
-    "🇭🇰 即週週期權 (結算日: 2026-11-13W)": {
-      "expiry_date": "2026-11-13",
-      "data": [
-        { "strike": 23800, "call_oi": 320, "put_oi": 680 },
-        { "strike": 24000, "call_oi": 580, "put_oi": 950 },
-        { "strike": 24200, "call_oi": 720, "put_oi": 620 },
-        { "strike": 24400, "call_oi": 910, "put_oi": 450 },
-        { "strike": 24600, "call_oi": 1250, "put_oi": 310 },
-        { "strike": 24800, "call_oi": 1420, "put_oi": 180 },
-        { "strike": 25000, "call_oi": 890, "put_oi": 90 }
-      ]
+  "source": "HKEX Official Daily Market Report (hsio & dmo)",
+  "stocks": {
+    "恒生指數 (HSI)": {
+      "contracts": {
+        "🇭🇰 即週週期權 (結算日: 2026-11-13W)": {
+          "expiry_date": "2026-11-13",
+          "data": [
+            { "strike": 23800, "call_oi": 320, "put_oi": 680 },
+            { "strike": 24000, "call_oi": 580, "put_oi": 950 },
+            { "strike": 24200, "call_oi": 720, "put_oi": 620 },
+            { "strike": 24400, "call_oi": 910, "put_oi": 450 },
+            { "strike": 24600, "call_oi": 1250, "put_oi": 310 },
+            { "strike": 24800, "call_oi": 1420, "put_oi": 180 },
+            { "strike": 25000, "call_oi": 890, "put_oi": 90 }
+          ]
+        },
+        "🇭🇰 下週週期權 (結算日: 2026-11-20W)": {
+          "expiry_date": "2026-11-20",
+          "data": [
+            { "strike": 23800, "call_oi": 180, "put_oi": 340 },
+            { "strike": 24000, "call_oi": 420, "put_oi": 510 },
+            { "strike": 24200, "call_oi": 310, "put_oi": 280 },
+            { "strike": 24400, "call_oi": 560, "put_oi": 390 },
+            { "strike": 24600, "call_oi": 680, "put_oi": 210 },
+            { "strike": 24800, "call_oi": 750, "put_oi": 150 },
+            { "strike": 25000, "call_oi": 490, "put_oi": 80 }
+          ]
+        },
+        "🇭🇰 即月月期權 (結算日: 2026-11-27)": {
+          "expiry_date": "2026-11-27",
+          "data": [
+            { "strike": 23600, "call_oi": 266, "put_oi": 660 },
+            { "strike": 23800, "call_oi": 589, "put_oi": 513 },
+            { "strike": 24000, "call_oi": 1107, "put_oi": 782 },
+            { "strike": 24200, "call_oi": 477, "put_oi": 396 },
+            { "strike": 24400, "call_oi": 801, "put_oi": 480 },
+            { "strike": 24600, "call_oi": 774, "put_oi": 285 },
+            { "strike": 24800, "call_oi": 1086, "put_oi": 263 },
+            { "strike": 25000, "call_oi": 757, "put_oi": 166 }
+          ]
+        }
+      }
     },
-    "🇭🇰 下週週期權 (結算日: 2026-11-20W)": {
-      "expiry_date": "2026-11-20",
-      "data": [
-        { "strike": 23800, "call_oi": 180, "put_oi": 340 },
-        { "strike": 24000, "call_oi": 420, "put_oi": 510 },
-        { "strike": 24200, "call_oi": 310, "put_oi": 280 },
-        { "strike": 24400, "call_oi": 560, "put_oi": 390 },
-        { "strike": 24600, "call_oi": 680, "put_oi": 210 },
-        { "strike": 24800, "call_oi": 750, "put_oi": 150 },
-        { "strike": 25000, "call_oi": 490, "put_oi": 80 }
-      ]
+    "騰訊控股 (0700.HK)": {
+      "contracts": {
+        "🇭🇰 即月期權 (結算日: 2026-11-27)": {
+          "expiry_date": "2026-11-27",
+          "data": [
+            { "strike": 400.0, "call_oi": 820, "put_oi": 3450 },
+            { "strike": 410.0, "call_oi": 1150, "put_oi": 2890 },
+            { "strike": 420.0, "call_oi": 2340, "put_oi": 2100 },
+            { "strike": 430.0, "call_oi": 3980, "put_oi": 1420 },
+            { "strike": 440.0, "call_oi": 5210, "put_oi": 890 },
+            { "strike": 450.0, "call_oi": 4100, "put_oi": 320 }
+          ]
+        }
+      }
     },
-    "🇭🇰 即月月期權 (結算日: 2026-11-27)": {
-      "expiry_date": "2026-11-27",
-      "data": [
-        { "strike": 23600, "call_oi": 266, "put_oi": 660 },
-        { "strike": 23800, "call_oi": 589, "put_oi": 513 },
-        { "strike": 24000, "call_oi": 1107, "put_oi": 782 },
-        { "strike": 24200, "call_oi": 477, "put_oi": 396 },
-        { "strike": 24400, "call_oi": 801, "put_oi": 480 },
-        { "strike": 24600, "call_oi": 774, "put_oi": 285 },
-        { "strike": 24800, "call_oi": 1086, "put_oi": 263 },
-        { "strike": 25000, "call_oi": 757, "put_oi": 166 }
-      ]
+    "阿里巴巴 (9988.HK)": {
+      "contracts": {
+        "🇭🇰 即月期權 (結算日: 2026-11-27)": {
+          "expiry_date": "2026-11-27",
+          "data": [
+            { "strike": 90.0, "call_oi": 540, "put_oi": 2680 },
+            { "strike": 92.5, "call_oi": 890, "put_oi": 1950 },
+            { "strike": 95.0, "call_oi": 1820, "put_oi": 1640 },
+            { "strike": 97.5, "call_oi": 2750, "put_oi": 920 },
+            { "strike": 100.0, "call_oi": 3890, "put_oi": 450 },
+            { "strike": 102.5, "call_oi": 2100, "put_oi": 180 }
+          ]
+        }
+      }
     }
   }
 }
