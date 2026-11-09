@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import json
 import os
+from datetime import datetime, timedelta
 
 st.set_page_config(page_title="港美股大戶未平倉攻防終端", layout="wide")
 
@@ -47,11 +48,36 @@ if market == "🇺🇸 美股期權鏈 (CBOE/OCC 官方源)":
                 elif not current_price:
                     st.error(f"❌ 無法獲取 [{symbol}] 的有效官方現價。")
                 else:
-                    recent_expirations = list(expirations[:6])
+                    # 篩選未來 35 天內（足一個月以上）的所有到期日
+                    today = datetime.now().date()
+                    one_month_later = today + timedelta(days=35)
+                    
+                    target_expirations = [
+                        exp for exp in expirations 
+                        if today <= datetime.strptime(exp, "%Y-%m-%d").date() <= one_month_later
+                    ]
+                    
+                    # 若一個月內無密集合約（例如月期權股），則保證最少展示最近 8 個合約
+                    if len(target_expirations) < 4:
+                        target_expirations = list(expirations[:8])
+                    
                     selected_expiry = st.radio(
-                        "📅 選擇到期日（純點擊切換）：",
-                        recent_expirations,
+                        "📅 選擇到期日（一個月內所有合約，純點擊切換）：",
+                        target_expirations,
                         horizontal=True
+                    )
+                    
+                    # 官方數據出處與直接核對 Link
+                    yahoo_check_url = f"https://finance.yahoo.com/quote/{symbol}/options/?date={int(datetime.strptime(selected_expiry, '%Y-%m-%d').timestamp())}"
+                    cboe_check_url = f"https://www.cboe.com/delayed_quotes/{symbol.lower()}/quote_table"
+                    
+                    st.markdown(
+                        f"""
+                        🔍 **官方數據源與 Fact-check 直達連結：**  
+                        * [👉 點此在 Yahoo Finance 官方期權鏈核對 [{selected_expiry}] 的 Open Interest]({yahoo_check_url})
+                        * [👉 點此在 CBOE（芝加哥期權交易所）官方頁面核對原始數據]({cboe_check_url})
+                        """,
+                        unsafe_allow_html=True
                     )
                     
                     chain = ticker.option_chain(selected_expiry)
@@ -110,11 +136,10 @@ if market == "🇺🇸 美股期權鏈 (CBOE/OCC 官方源)":
 else:
     st.subheader("🇭🇰 港股市場官方大戶未平倉攻防終端 (HKEX)")
     
-    # 港股自訂輸入號碼表單（防手機彈鍵盤干擾）
     with st.form(key="hk_form"):
         c_hk1, c_hk2 = st.columns([3, 1])
         with c_hk1:
-            hk_input = st.text_input("輸入港股代號或指數（例如 HSI, 0700, 9988, 3690, 0388, 1211）：", value="HSI").strip().upper()
+            hk_input = st.text_input("輸入港股代號或指數（例如 HSI, 0700, 9988, 3690）：", value="0700").strip().upper()
         with c_hk2:
             st.write("")
             hk_submit = st.form_submit_button("🔍 查詢港股")
@@ -127,10 +152,21 @@ else:
             report_date = hkex_payload.get("report_date", "未記錄")
             stocks_dict = hkex_payload.get("stocks", {})
             
-            # 代號模糊智能匹配（例如輸入 700 或 0700 都能配對到「騰訊控股 (0700.HK)」）
-            matched_key = None
-            clean_input = hk_input.replace(".HK", "").zfill(4) if hk_input.isdigit() else hk_input
+            clean_date = report_date.replace("-", "")[2:8] if len(report_date) >= 10 else "261106"
+            hkex_hsio_url = f"https://www.hkex.com.hk/eng/stat/dmstat/dayrpt/hsio{clean_date}.htm"
+            hkex_dmo_url = f"https://www.hkex.com.hk/eng/stat/dmstat/dayrpt/dmo{clean_date}.htm"
             
+            st.markdown(
+                f"""
+                🔍 **港交所 HKEX 官方每日日報出處直達：**  
+                * [👉 點此核對當日恒指期權官方報表 (hsio{clean_date}.htm)]({hkex_hsio_url})
+                * [👉 點此核對當日全港個股期權官方報表 (dmo{clean_date}.htm)]({hkex_dmo_url})
+                """,
+                unsafe_allow_html=True
+            )
+            
+            clean_input = hk_input.replace(".HK", "").zfill(4) if hk_input.isdigit() else hk_input
+            matched_key = None
             for k in stocks_dict.keys():
                 if clean_input in k or hk_input in k:
                     matched_key = k
@@ -138,7 +174,7 @@ else:
                     
             if not matched_key:
                 st.error(f"❌ 官方結算庫中暫未收錄代號 [{hk_input}]。")
-                st.info(f"💡 目前日報庫已收錄標的：{', '.join(stocks_dict.keys())}。如需新增其他股票，只需加入 json 即可。")
+                st.info(f"💡 目前日報庫已收錄標的：{', '.join(stocks_dict.keys())}")
             else:
                 stock_data = stocks_dict[matched_key]
                 contracts_dict = stock_data.get("contracts", {})
@@ -157,7 +193,6 @@ else:
                 if raw_data:
                     df_hk = pd.DataFrame(raw_data)
                     
-                    # 計算大戶 P&L 最佳結算位 (Max Pain)
                     strikes = df_hk['strike'].tolist()
                     pnl_records = []
                     for s in strikes:
@@ -173,7 +208,7 @@ else:
                     high_calls = df_hk[df_hk['strike'] > put_max['strike']]
                     call_max = high_calls.loc[high_calls['call_oi'].idxmax()] if not high_calls.empty else df_hk.loc[df_hk['call_oi'].idxmax()]
                     
-                    st.info(f"📌 **標的**：{matched_key} ｜ **發布日**：{report_date} ｜ 🎯 **到期結算日**：**{settle_date}**")
+                    st.info(f"📌 **標的**：{matched_key} ｜ **結算日報發布日**：{report_date} ｜ 🎯 **到期結算日**：**{settle_date}**")
                     
                     unit_str = "點" if "HSI" in matched_key or "恒生" in matched_key else "元"
                     
@@ -208,9 +243,5 @@ else:
                         height=750
                     )
                     st.plotly_chart(fig_hk, use_container_width=True, config={'displayModeBar': False})
-                else:
-                    st.warning("⚠️ 該合約無行使價數據。")
         except Exception as e:
-            st.error(f"解析官方數據出錯: {e}")
-    else:
-        st.warning("⚠️ 港交所官方結算檔案尚未生成。")
+            st.error(f"解析數據出錯: {e}")
